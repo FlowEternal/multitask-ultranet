@@ -1,0 +1,137 @@
+tag: "ultraNET"
+train:
+    train_detect: True
+    train_seg: True
+    train_lane: True
+
+    # train config
+    batch_size_train: 36
+    num_worker_train: 36
+    batch_size_valid: 16
+    num_worker_valid: 16
+    lr: 0.001
+    weight_decay: 0.000001
+    epoch: 24
+    logs: "logs"
+    print_interval: 10
+    use_distribute: True
+    continue_train: False
+    weight_file: ""
+
+    # set true if adjust each head after some epoch and then joint again
+    fine_tuning: False
+    backbone_lr_ratio_to_base: 0.5
+    epoch_tuning: 1
+    tuning_turn: 1
+
+
+dataloader:
+    data_list: "/data/zdx/Data/data_multitask/MULTITASK/list"
+    network_input_width: 640
+    network_input_height: 640
+
+    # image augmentation
+    with_aug: True
+    do_split: False
+    do_flip: False
+
+backbone:
+    choose_resnet: True
+    resnet_type: 34
+
+    # backbone mit
+    in_channels: 3
+    embed_dims: 64
+    num_stages: 4
+    num_layers: [2, 2, 2, 2]
+    num_heads: [1, 2, 5, 8]
+    patch_sizes: [7, 3, 3, 3]
+    strides: [4, 2, 2, 2]
+    sr_ratios: [8, 4, 2, 1]
+    out_indices: [0, 1, 2, 3]
+    mlp_ratio: 4
+    qkv_bias: True
+    drop_rate: 0.
+    attn_drop_rate: 0.
+    drop_path_rate: 0.1
+    act_cfg: {"type":'GELU'}
+    norm_cfg: {"type":'LN', "eps":0.000001}
+
+
+    # neck
+    interpolate_mode: 'bilinear'
+    in_channels_: [64, 128, 320, 512]
+    in_index: [0, 1, 2, 3]
+    channels: &channels 256
+    act_cfg_: {"type":'ReLU'}
+    norm_cfg_: {"type":"BN", "requires_grad":True}
+    align_corners: False
+    neck_scale: 2
+
+detection:
+    class_list: ['__background__',
+                  "roadtext",
+                  "pedestrian",
+                  "guidearrow",
+                  "traffic",
+                  "obstacle",
+                  "vehicle_wheel",
+                  "roadsign",
+                  "vehicle",
+                  "vehicle_light"]
+
+    num_classes: 9
+    in_channel: *channels
+    feat_channel: 256
+    loss_center_heatmap: { "type":'GaussianFocalLoss', "loss_weight":1.0 }
+    loss_wh: {"type":'L1Loss', "loss_weight":0.1}
+    loss_offset: {type: 'L1Loss', "loss_weight": 1.0}
+    test_cfg: {'topk': 100, 'local_maximum_kernel': 3, 'max_per_img': 100}
+    detection_weight: 1.0
+
+segment:
+    class_list: [ "__background__","road_area","marking_area"]
+
+    # cross entropy loss weight
+    class_weight: [ 0.1, 0.5, 5.0]
+
+    feat_channel: 256
+
+    # loss function type for fine tune
+#    use_top_k: False
+#    top_k_ratio: 0.3
+#    use_focal: True
+
+    # loss function type for pretrain
+    use_top_k: True
+    top_k_ratio: 0.3
+    use_focal: False
+
+    # avg
+    segment_weight: 1.0
+
+lane:
+
+    cluster_feat_dim: 4
+    feat_channel: *channels
+    exist_condidence_loss: 1.0
+    nonexist_confidence_loss: 1.0
+    offset_loss: 0.2
+    sisc_loss: 0.5
+    disc_loss: 0.5
+    ratio_start: 3
+    ratio_interval: 72
+
+    k1: 1.0
+    thresh: 0.5
+    threshold_instance: 0.002
+
+    resize_ratio: 16
+    interval: 16
+    interpolate: False
+
+    # avg 30
+    lane_weight: 1.0
+
+
+
